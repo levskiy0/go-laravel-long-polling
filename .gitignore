@@ -5,6 +5,7 @@
 *.so
 *.dylib
 longpoll-server
+bin
 
 # Test binary, built with `go test -c`
 *.test
@@ -20,6 +21,7 @@ go.work
 
 # Environment files
 .env
+
 
 # IDE
 .idea/
