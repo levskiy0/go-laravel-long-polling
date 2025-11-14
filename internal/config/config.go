@@ -43,6 +43,13 @@ type Config struct {
 	// Laravel upstream pool configuration
 	LaravelUpstreamWorkers int
 	MaxLimit               int
+
+	// CORS configuration
+	CORSAllowedOrigins  string
+	CORSAllowedMethods  string
+	CORSAllowedHeaders  string
+	CORSAllowCredentials bool
+	CORSMaxAge          int
 }
 
 // Load loads configuration from environment variables
@@ -68,6 +75,11 @@ func Load() (*Config, error) {
 		LogFormat:              getEnv("LOG_FORMAT", "json"),
 		LaravelUpstreamWorkers: getIntEnv("LARAVEL_UPSTREAM_WORKERS", 15),
 		MaxLimit:               getIntEnv("MAX_LIMIT", 100),
+		CORSAllowedOrigins:     getEnv("CORS_ALLOWED_ORIGINS", "*"),
+		CORSAllowedMethods:     getEnv("CORS_ALLOWED_METHODS", "GET,POST,PUT,DELETE,OPTIONS"),
+		CORSAllowedHeaders:     getEnv("CORS_ALLOWED_HEADERS", "Content-Type,Authorization,X-Requested-With"),
+		CORSAllowCredentials:   getBoolEnv("CORS_ALLOW_CREDENTIALS", true),
+		CORSMaxAge:             getIntEnv("CORS_MAX_AGE", 3600),
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -132,6 +144,15 @@ func getDurationEnv(key string, defaultValue time.Duration) time.Duration {
 	if value := os.Getenv(key); value != "" {
 		if duration, err := time.ParseDuration(value); err == nil {
 			return duration
+		}
+	}
+	return defaultValue
+}
+
+func getBoolEnv(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
 		}
 	}
 	return defaultValue

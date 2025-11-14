@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/levskiy0/go-laravel-long-polling/internal/config"
 )
 
 type Server struct {
@@ -20,6 +21,7 @@ func NewServer(
 	readTimeout time.Duration,
 	writeTimeout time.Duration,
 	handlers *Handlers,
+	cfg *config.Config,
 	logger *slog.Logger,
 ) *Server {
 	// Set Gin mode based on log level
@@ -27,6 +29,7 @@ func NewServer(
 
 	router := gin.New()
 	router.Use(gin.Recovery())
+	router.Use(CORSMiddleware(cfg))
 
 	// Add custom logger middleware
 	router.Use(func(c *gin.Context) {
