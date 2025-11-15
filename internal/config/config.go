@@ -44,12 +44,18 @@ type Config struct {
 	LaravelUpstreamWorkers int
 	MaxLimit               int
 
+	// HTTP client configuration for upstream requests
+	HTTPMaxIdleConns      int
+	HTTPMaxConnsPerHost   int
+	HTTPIdleConnTimeout   time.Duration
+	LaravelRequestTimeout time.Duration
+
 	// CORS configuration
-	CORSAllowedOrigins  string
-	CORSAllowedMethods  string
-	CORSAllowedHeaders  string
+	CORSAllowedOrigins   string
+	CORSAllowedMethods   string
+	CORSAllowedHeaders   string
 	CORSAllowCredentials bool
-	CORSMaxAge          int
+	CORSMaxAge           int
 }
 
 // Load loads configuration from environment variables
@@ -75,6 +81,10 @@ func Load() (*Config, error) {
 		LogFormat:              getEnv("LOG_FORMAT", "json"),
 		LaravelUpstreamWorkers: getIntEnv("LARAVEL_UPSTREAM_WORKERS", 15),
 		MaxLimit:               getIntEnv("MAX_LIMIT", 100),
+		HTTPMaxIdleConns:       getIntEnv("HTTP_MAX_IDLE_CONNS", 100),
+		HTTPMaxConnsPerHost:    getIntEnv("HTTP_MAX_CONNS_PER_HOST", 50),
+		HTTPIdleConnTimeout:    getDurationEnv("HTTP_IDLE_CONN_TIMEOUT", 90*time.Second),
+		LaravelRequestTimeout:  getDurationEnv("LARAVEL_REQUEST_TIMEOUT", 30*time.Second),
 		CORSAllowedOrigins:     getEnv("CORS_ALLOWED_ORIGINS", "*"),
 		CORSAllowedMethods:     getEnv("CORS_ALLOWED_METHODS", "GET,POST,PUT,DELETE,OPTIONS"),
 		CORSAllowedHeaders:     getEnv("CORS_ALLOWED_HEADERS", "Content-Type,Authorization,X-Requested-With"),

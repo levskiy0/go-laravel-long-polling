@@ -14,13 +14,13 @@ import (
 )
 
 type Handlers struct {
-	jwtService      *auth.JWTService
-	upstreamPool    *core.LaravelUpstreamPool
-	subscriber      *redis.Subscriber
-	accessSecret    string
-	pollTimeout     time.Duration
-	maxLimit        int
-	logger          *slog.Logger
+	jwtService   *auth.JWTService
+	upstreamPool *core.LaravelUpstreamPool
+	subscriber   *redis.Subscriber
+	accessSecret string
+	pollTimeout  time.Duration
+	maxLimit     int
+	logger       *slog.Logger
 }
 
 func NewHandlers(

@@ -40,8 +40,21 @@ func NewLaravelUpstreamPool(
 	secret string,
 	maxLimit int,
 	workers int,
+	requestTimeout time.Duration,
+	maxIdleConns int,
+	maxConnsPerHost int,
+	idleConnTimeout time.Duration,
 	logger *slog.Logger,
 ) *LaravelUpstreamPool {
+	transport := &http.Transport{
+		MaxIdleConns:        maxIdleConns,
+		MaxIdleConnsPerHost: maxConnsPerHost,
+		MaxConnsPerHost:     maxConnsPerHost,
+		IdleConnTimeout:     idleConnTimeout,
+		DisableKeepAlives:   false,
+		DisableCompression:  false,
+	}
+
 	return &LaravelUpstreamPool{
 		laravelAddr: laravelAddr,
 		secret:      secret,
@@ -49,7 +62,8 @@ func NewLaravelUpstreamPool(
 		logger:      logger,
 		semaphore:   make(chan struct{}, workers),
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:   requestTimeout,
+			Transport: transport,
 		},
 	}
 }
