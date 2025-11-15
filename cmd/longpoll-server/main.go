@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/levskiy0/go-laravel-long-polling/internal/auth"
 	"github.com/levskiy0/go-laravel-long-polling/internal/config"
@@ -131,9 +132,30 @@ func registerHooks(
 		OnStart: func(ctx context.Context) error {
 			logger.Info("starting long-polling service")
 
+			// Start Redis subscriber with auto-reconnect
 			go func() {
-				if err := subscriber.Start(context.Background()); err != nil {
-					logger.Error("Redis subscriber stopped", "error", err)
+				backoff := time.Second
+				maxBackoff := time.Minute
+				for {
+					err := subscriber.Start(context.Background())
+					if err != nil && err != context.Canceled {
+						logger.Error("Redis subscriber stopped, reconnecting",
+							"error", err,
+							"retry_in", backoff)
+						time.Sleep(backoff)
+						// Exponential backoff
+						backoff *= 2
+						if backoff > maxBackoff {
+							backoff = maxBackoff
+						}
+					} else {
+						// Reset backoff on successful connection or graceful shutdown
+						backoff = time.Second
+						if err == context.Canceled {
+							logger.Info("Redis subscriber shutdown gracefully")
+							return
+						}
+					}
 				}
 			}()
 

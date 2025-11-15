@@ -58,7 +58,12 @@ func (s *Subscriber) Start(ctx context.Context) error {
 		case <-ctx.Done():
 			s.logger.Info("Redis subscriber stopped")
 			return ctx.Err()
-		case msg := <-ch:
+		case msg, ok := <-ch:
+			if !ok {
+				// Channel closed - Redis connection lost
+				s.logger.Warn("Redis subscription channel closed, reconnection needed")
+				return nil
+			}
 			if msg == nil {
 				continue
 			}
