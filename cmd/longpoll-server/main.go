@@ -148,6 +148,8 @@ func registerHooks(
 		OnStop: func(ctx context.Context) error {
 			logger.Info("stopping long-polling service")
 
+			subscriber.Stop()
+
 			if err := server.Stop(ctx); err != nil {
 				logger.Error("failed to stop HTTP server", "error", err)
 			}

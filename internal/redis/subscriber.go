@@ -23,6 +23,7 @@ type Subscriber struct {
 	logger   *slog.Logger
 	handlers map[string][]chan EventNotification
 	mu       sync.RWMutex
+	cancel   context.CancelFunc
 }
 
 // NewSubscriber creates a new Redis subscriber
@@ -37,6 +38,9 @@ func NewSubscriber(client *redis.Client, channel string, logger *slog.Logger) *S
 
 // Start begins listening for Redis pub/sub messages
 func (s *Subscriber) Start(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	s.cancel = cancel
+
 	pubsub := s.client.Subscribe(ctx, s.channel)
 	defer pubsub.Close()
 
@@ -60,6 +64,13 @@ func (s *Subscriber) Start(ctx context.Context) error {
 			}
 			s.handleMessage(msg.Payload)
 		}
+	}
+}
+
+// Stop gracefully stops the subscriber
+func (s *Subscriber) Stop() {
+	if s.cancel != nil {
+		s.cancel()
 	}
 }
 
@@ -110,10 +121,12 @@ func (s *Subscriber) handleMessage(payload string) {
 		"event_id", notification.EventID,
 	)
 
+	// Hold RLock for the entire duration to prevent channels from being closed
+	// while we're sending to them. This is safe because send with default doesn't block.
 	s.mu.RLock()
-	handlers := s.handlers[notification.ChannelID]
-	s.mu.RUnlock()
+	defer s.mu.RUnlock()
 
+	handlers := s.handlers[notification.ChannelID]
 	for _, handler := range handlers {
 		select {
 		case handler <- notification:
