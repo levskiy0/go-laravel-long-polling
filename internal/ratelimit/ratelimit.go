@@ -51,31 +51,30 @@ func (l *Limiter) CheckToken(ctx context.Context, token string) (bool, error) {
 	return l.checkLimit(ctx, key, l.limitPerToken)
 }
 
-// checkLimit performs the actual rate limit check using Redis
+// checkLimit performs the actual rate limit check using Redis with fixed window
 func (l *Limiter) checkLimit(ctx context.Context, key string, limit int) (bool, error) {
-	pipe := l.redis.Pipeline()
+	added := l.redis.SetNX(ctx, key, 0, l.window).Val()
 
-	incr := pipe.Incr(ctx, key)
-	pipe.Expire(ctx, key, l.window)
-
-	_, err := pipe.Exec(ctx)
+	count, err := l.redis.Incr(ctx, key).Result()
 	if err != nil {
-		l.logger.Error("failed to check rate limit", "error", err, "key", key)
+		l.logger.Error("failed to increment rate limit counter", "error", err, "key", key)
 		return true, err
 	}
 
-	count := incr.Val()
-	allowed := count <= int64(limit)
+	if added && count != 1 {
+		l.redis.Expire(ctx, key, l.window)
+	}
 
-	if !allowed {
+	if count > int64(limit) {
 		l.logger.Warn("rate limit exceeded",
 			"key", key,
 			"count", count,
 			"limit", limit,
 		)
+		return false, nil
 	}
 
-	return allowed, nil
+	return true, nil
 }
 
 // Reset resets the rate limit for a specific key (useful for testing)
