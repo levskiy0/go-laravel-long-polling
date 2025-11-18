@@ -71,9 +71,9 @@ func provideLaravelUpstreamPool(cfg *config.Config, logger *slog.Logger) *core.L
 	pool := core.NewLaravelUpstreamPool(
 		cfg.LaravelAddr,
 		cfg.AccessTokenSecret,
-		cfg.MaxLimit,
+		cfg.LaravelUpstreamMaxEvents,
 		cfg.LaravelUpstreamWorkers,
-		cfg.LaravelRequestTimeout,
+		cfg.LaravelUpstreamTimeout,
 		cfg.HTTPMaxIdleConns,
 		cfg.HTTPMaxConnsPerHost,
 		cfg.HTTPIdleConnTimeout,
@@ -82,7 +82,8 @@ func provideLaravelUpstreamPool(cfg *config.Config, logger *slog.Logger) *core.L
 	logger.Info("Laravel upstream pool created",
 		"addr", cfg.LaravelAddr,
 		"workers", cfg.LaravelUpstreamWorkers,
-		"request_timeout", cfg.LaravelRequestTimeout,
+		"max_events", cfg.LaravelUpstreamMaxEvents,
+		"upstream_timeout", cfg.LaravelUpstreamTimeout,
 		"max_idle_conns", cfg.HTTPMaxIdleConns,
 		"max_conns_per_host", cfg.HTTPMaxConnsPerHost,
 	)
@@ -108,7 +109,7 @@ func provideHTTPHandlers(
 		subscriber,
 		cfg.AccessTokenSecret,
 		cfg.PollTimeout,
-		cfg.MaxLimit,
+		cfg.LaravelUpstreamMaxEvents,
 		logger,
 	)
 }

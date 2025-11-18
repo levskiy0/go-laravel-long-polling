@@ -28,7 +28,7 @@ type LaravelResponse struct {
 type LaravelUpstreamPool struct {
 	laravelAddr string
 	secret      string
-	maxLimit    int
+	maxEvents    int
 	logger      *slog.Logger
 	semaphore   chan struct{}
 	httpClient  *http.Client
@@ -38,7 +38,7 @@ type LaravelUpstreamPool struct {
 func NewLaravelUpstreamPool(
 	laravelAddr string,
 	secret string,
-	maxLimit int,
+	maxEvents int,
 	workers int,
 	requestTimeout time.Duration,
 	maxIdleConns int,
@@ -58,7 +58,7 @@ func NewLaravelUpstreamPool(
 	return &LaravelUpstreamPool{
 		laravelAddr: laravelAddr,
 		secret:      secret,
-		maxLimit:    maxLimit,
+		maxEvents:   maxEvents,
 		logger:      logger,
 		semaphore:   make(chan struct{}, workers),
 		httpClient: &http.Client{
@@ -77,8 +77,8 @@ func (p *LaravelUpstreamPool) GetEvents(ctx context.Context, channelID string, o
 		return nil, ctx.Err()
 	}
 
-	if limit > p.maxLimit {
-		limit = p.maxLimit
+	if limit > p.maxEvents {
+		limit = p.maxEvents
 	}
 
 	reqURL := fmt.Sprintf("%s/api/long-polling/getEvents?channel_id=%s&secret=%s&offset=%d&limit=%d",

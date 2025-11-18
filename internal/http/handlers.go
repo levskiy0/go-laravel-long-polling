@@ -19,7 +19,7 @@ type Handlers struct {
 	subscriber   *redis.Subscriber
 	accessSecret string
 	pollTimeout  time.Duration
-	maxLimit     int
+	maxEvents    int
 	logger       *slog.Logger
 }
 
@@ -29,7 +29,7 @@ func NewHandlers(
 	subscriber *redis.Subscriber,
 	accessSecret string,
 	pollTimeout time.Duration,
-	maxLimit int,
+	maxEvents int,
 	logger *slog.Logger,
 ) *Handlers {
 	return &Handlers{
@@ -38,7 +38,7 @@ func NewHandlers(
 		subscriber:   subscriber,
 		accessSecret: accessSecret,
 		pollTimeout:  pollTimeout,
-		maxLimit:     maxLimit,
+		maxEvents:    maxEvents,
 		logger:       logger,
 	}
 }
@@ -113,8 +113,8 @@ func (h *Handlers) GetUpdates(c *gin.Context) {
 	if err != nil || limit < 1 {
 		limit = 100
 	}
-	if limit > h.maxLimit {
-		limit = h.maxLimit
+	if limit > h.maxEvents {
+		limit = h.maxEvents
 	}
 
 	h.logger.Debug("getUpdates request",

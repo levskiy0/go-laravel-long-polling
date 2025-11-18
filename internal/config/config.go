@@ -41,14 +41,14 @@ type Config struct {
 	LogFormat string
 
 	// Laravel upstream pool configuration
-	LaravelUpstreamWorkers int
-	MaxLimit               int
+	LaravelUpstreamWorkers  int
+	LaravelUpstreamMaxEvents int
+	LaravelUpstreamTimeout  time.Duration
 
 	// HTTP client configuration for upstream requests
-	HTTPMaxIdleConns      int
-	HTTPMaxConnsPerHost   int
-	HTTPIdleConnTimeout   time.Duration
-	LaravelRequestTimeout time.Duration
+	HTTPMaxIdleConns    int
+	HTTPMaxConnsPerHost int
+	HTTPIdleConnTimeout time.Duration
 
 	// CORS configuration
 	CORSAllowedOrigins   string
@@ -77,14 +77,14 @@ func Load() (*Config, error) {
 		RedisChannel:           getEnv("REDIS_CHANNEL", "longpoll:events"),
 		PollTimeout:            getDurationEnv("POLL_TIMEOUT", 25*time.Second),
 		AccessTokenSecret:      getEnv("ACCESS_TOKEN_SECRET", "shared_secret_between_laravel_and_go"),
-		LogLevel:               getEnv("LOG_LEVEL", "info"),
-		LogFormat:              getEnv("LOG_FORMAT", "json"),
-		LaravelUpstreamWorkers: getIntEnv("LARAVEL_UPSTREAM_WORKERS", 15),
-		MaxLimit:               getIntEnv("MAX_LIMIT", 100),
-		HTTPMaxIdleConns:       getIntEnv("HTTP_MAX_IDLE_CONNS", 100),
-		HTTPMaxConnsPerHost:    getIntEnv("HTTP_MAX_CONNS_PER_HOST", 50),
-		HTTPIdleConnTimeout:    getDurationEnv("HTTP_IDLE_CONN_TIMEOUT", 90*time.Second),
-		LaravelRequestTimeout:  getDurationEnv("LARAVEL_REQUEST_TIMEOUT", 30*time.Second),
+		LogLevel:                 getEnv("LOG_LEVEL", "info"),
+		LogFormat:                getEnv("LOG_FORMAT", "json"),
+		LaravelUpstreamWorkers:   getIntEnv("LARAVEL_UPSTREAM_WORKERS", 15),
+		LaravelUpstreamMaxEvents: getIntEnv("LARAVEL_UPSTREAM_MAX_EVENTS", 100),
+		LaravelUpstreamTimeout:   getDurationEnv("LARAVEL_UPSTREAM_TIMEOUT", 5*time.Second),
+		HTTPMaxIdleConns:         getIntEnv("HTTP_MAX_IDLE_CONNS", 100),
+		HTTPMaxConnsPerHost:      getIntEnv("HTTP_MAX_CONNS_PER_HOST", 50),
+		HTTPIdleConnTimeout:      getDurationEnv("HTTP_IDLE_CONN_TIMEOUT", 90*time.Second),
 		CORSAllowedOrigins:     getEnv("CORS_ALLOWED_ORIGINS", "*"),
 		CORSAllowedMethods:     getEnv("CORS_ALLOWED_METHODS", "GET,POST,PUT,DELETE,OPTIONS"),
 		CORSAllowedHeaders:     getEnv("CORS_ALLOWED_HEADERS", "Content-Type,Authorization,X-Requested-With"),
@@ -110,8 +110,11 @@ func (c *Config) validate() error {
 	if c.LaravelUpstreamWorkers < 1 {
 		return fmt.Errorf("LARAVEL_UPSTREAM_WORKERS must be at least 1")
 	}
-	if c.MaxLimit < 1 || c.MaxLimit > 1000 {
-		return fmt.Errorf("MAX_LIMIT must be between 1 and 1000")
+	if c.LaravelUpstreamMaxEvents < 1 || c.LaravelUpstreamMaxEvents > 1000 {
+		return fmt.Errorf("LARAVEL_UPSTREAM_MAX_EVENTS must be between 1 and 1000")
+	}
+	if c.LaravelUpstreamTimeout < 1*time.Second {
+		return fmt.Errorf("LARAVEL_UPSTREAM_TIMEOUT must be at least 1 second")
 	}
 	return nil
 }
