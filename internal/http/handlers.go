@@ -83,26 +83,19 @@ func (h *Handlers) GetAccessToken(c *gin.Context) {
 // GetUpdates handles the /getUpdates endpoint
 // GET /getUpdates?token=...&offset=...&limit=...
 func (h *Handlers) GetUpdates(c *gin.Context) {
-	tokenString := c.Query("token")
+	// Get channel_id from context (already validated by JWTMiddleware)
+	channelIDValue, exists := c.Get(ContextKeyChannelID)
+	if !exists {
+		h.logger.Error("channel_id not found in context")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal server error",
+		})
+		return
+	}
+	channelID := channelIDValue.(string)
+
 	offsetStr := c.DefaultQuery("offset", "0")
 	limitStr := c.DefaultQuery("limit", "100")
-
-	// Validate token
-	if tokenString == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "token is required",
-		})
-		return
-	}
-
-	channelID, err := h.jwtService.ValidateToken(tokenString)
-	if err != nil {
-		h.logger.Warn("invalid token", "error", err)
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Invalid or expired token",
-		})
-		return
-	}
 
 	offset, err := strconv.ParseInt(offsetStr, 10, 64)
 	if err != nil {

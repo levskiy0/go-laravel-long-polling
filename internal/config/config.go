@@ -41,9 +41,9 @@ type Config struct {
 	LogFormat string
 
 	// Laravel upstream pool configuration
-	LaravelUpstreamWorkers  int
+	LaravelUpstreamWorkers   int
 	LaravelUpstreamMaxEvents int
-	LaravelUpstreamTimeout  time.Duration
+	LaravelUpstreamTimeout   time.Duration
 
 	// HTTP client configuration for upstream requests
 	HTTPMaxIdleConns    int
@@ -56,6 +56,10 @@ type Config struct {
 	CORSAllowedHeaders   string
 	CORSAllowCredentials bool
 	CORSMaxAge           int
+
+	// Rate limiting configuration
+	RateLimitPerIP    int
+	RateLimitPerToken int
 }
 
 // Load loads configuration from environment variables
@@ -64,19 +68,19 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		LaravelAddr:            getEnv("LARAVEL_ADDR", "http://localhost:8000"),
-		HTTPAddr:               getEnv("HTTP_ADDR", ":8085"),
-		HTTPReadTimeout:        getDurationEnv("HTTP_READ_TIMEOUT", 30*time.Second),
-		HTTPWriteTimeout:       getDurationEnv("HTTP_WRITE_TIMEOUT", 30*time.Second),
-		JWTSecret:              getEnv("JWT_SECRET", "super_long_random_secret"),
-		JWTExpiresIn:           getIntEnv("JWT_EXPIRES_IN", 3600),
-		JWTAlgo:                getEnv("JWT_ALGO", "HS256"),
-		RedisAddr:              getEnv("REDIS_ADDR", "redis:6379"),
-		RedisDB:                getIntEnv("REDIS_DB", 0),
-		RedisPassword:          getEnv("REDIS_PASSWORD", ""),
-		RedisChannel:           getEnv("REDIS_CHANNEL", "longpoll:events"),
-		PollTimeout:            getDurationEnv("POLL_TIMEOUT", 25*time.Second),
-		AccessTokenSecret:      getEnv("ACCESS_TOKEN_SECRET", "shared_secret_between_laravel_and_go"),
+		LaravelAddr:              getEnv("LARAVEL_ADDR", "http://localhost:8000"),
+		HTTPAddr:                 getEnv("HTTP_ADDR", ":8085"),
+		HTTPReadTimeout:          getDurationEnv("HTTP_READ_TIMEOUT", 30*time.Second),
+		HTTPWriteTimeout:         getDurationEnv("HTTP_WRITE_TIMEOUT", 30*time.Second),
+		JWTSecret:                getEnv("JWT_SECRET", "super_long_random_secret"),
+		JWTExpiresIn:             getIntEnv("JWT_EXPIRES_IN", 3600),
+		JWTAlgo:                  getEnv("JWT_ALGO", "HS256"),
+		RedisAddr:                getEnv("REDIS_ADDR", "redis:6379"),
+		RedisDB:                  getIntEnv("REDIS_DB", 0),
+		RedisPassword:            getEnv("REDIS_PASSWORD", ""),
+		RedisChannel:             getEnv("REDIS_CHANNEL", "longpoll:events"),
+		PollTimeout:              getDurationEnv("POLL_TIMEOUT", 25*time.Second),
+		AccessTokenSecret:        getEnv("ACCESS_TOKEN_SECRET", "shared_secret_between_laravel_and_go"),
 		LogLevel:                 getEnv("LOG_LEVEL", "info"),
 		LogFormat:                getEnv("LOG_FORMAT", "json"),
 		LaravelUpstreamWorkers:   getIntEnv("LARAVEL_UPSTREAM_WORKERS", 15),
@@ -85,11 +89,13 @@ func Load() (*Config, error) {
 		HTTPMaxIdleConns:         getIntEnv("HTTP_MAX_IDLE_CONNS", 100),
 		HTTPMaxConnsPerHost:      getIntEnv("HTTP_MAX_CONNS_PER_HOST", 50),
 		HTTPIdleConnTimeout:      getDurationEnv("HTTP_IDLE_CONN_TIMEOUT", 90*time.Second),
-		CORSAllowedOrigins:     getEnv("CORS_ALLOWED_ORIGINS", "*"),
-		CORSAllowedMethods:     getEnv("CORS_ALLOWED_METHODS", "GET,POST,PUT,DELETE,OPTIONS"),
-		CORSAllowedHeaders:     getEnv("CORS_ALLOWED_HEADERS", "Content-Type,Authorization,X-Requested-With"),
-		CORSAllowCredentials:   getBoolEnv("CORS_ALLOW_CREDENTIALS", true),
-		CORSMaxAge:             getIntEnv("CORS_MAX_AGE", 3600),
+		CORSAllowedOrigins:       getEnv("CORS_ALLOWED_ORIGINS", "*"),
+		CORSAllowedMethods:       getEnv("CORS_ALLOWED_METHODS", "GET,POST,PUT,DELETE,OPTIONS"),
+		CORSAllowedHeaders:       getEnv("CORS_ALLOWED_HEADERS", "Content-Type,Authorization,X-Requested-With"),
+		CORSAllowCredentials:     getBoolEnv("CORS_ALLOW_CREDENTIALS", true),
+		CORSMaxAge:               getIntEnv("CORS_MAX_AGE", 3600),
+		RateLimitPerIP:           getIntEnv("RATE_LIMIT_PER_IP", 10),
+		RateLimitPerToken:        getIntEnv("RATE_LIMIT_PER_TOKEN", 30),
 	}
 
 	if err := cfg.validate(); err != nil {

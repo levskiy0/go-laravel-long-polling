@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/levskiy0/go-laravel-long-polling/internal/config"
+	"github.com/levskiy0/go-laravel-long-polling/internal/ratelimit"
 )
 
 type Server struct {
@@ -21,6 +22,7 @@ func NewServer(
 	readTimeout time.Duration,
 	writeTimeout time.Duration,
 	handlers *Handlers,
+	rateLimiter *ratelimit.Limiter,
 	cfg *config.Config,
 	logger *slog.Logger,
 ) *Server {
@@ -57,7 +59,13 @@ func NewServer(
 	// Register routes
 	router.GET("/health", handlers.Health)
 	router.POST("/getAccessToken", handlers.GetAccessToken)
-	router.GET("/getUpdates", handlers.GetUpdates)
+
+	// GetUpdates with JWT validation and rate limiting middleware
+	router.GET("/getUpdates",
+		JWTMiddleware(handlers.jwtService, logger), // First: validate JWT and put channel_id in context
+		RateLimitMiddleware(rateLimiter, logger),   // Second: check rate limits
+		handlers.GetUpdates,                        // Finally: handle the request
+	)
 
 	httpServer := &http.Server{
 		Addr:         addr,

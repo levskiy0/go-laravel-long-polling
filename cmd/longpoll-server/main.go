@@ -10,6 +10,7 @@ import (
 	"github.com/levskiy0/go-laravel-long-polling/internal/config"
 	"github.com/levskiy0/go-laravel-long-polling/internal/core"
 	"github.com/levskiy0/go-laravel-long-polling/internal/http"
+	"github.com/levskiy0/go-laravel-long-polling/internal/ratelimit"
 	"github.com/levskiy0/go-laravel-long-polling/internal/redis"
 	goredis "github.com/redis/go-redis/v9"
 	"go.uber.org/fx"
@@ -21,6 +22,7 @@ func main() {
 		fx.Provide(provideLogger),
 		fx.Provide(provideRedisClient),
 		fx.Provide(provideJWTService),
+		fx.Provide(provideRateLimiter),
 		fx.Provide(provideLaravelUpstreamPool),
 		fx.Provide(provideRedisSubscriber),
 		fx.Provide(provideHTTPHandlers),
@@ -65,6 +67,15 @@ func provideJWTService(cfg *config.Config, logger *slog.Logger) (*auth.JWTServic
 	}
 	logger.Info("JWT service created")
 	return service, nil
+}
+
+func provideRateLimiter(client *goredis.Client, cfg *config.Config, logger *slog.Logger) *ratelimit.Limiter {
+	limiter := ratelimit.NewLimiter(client, cfg.RateLimitPerIP, cfg.RateLimitPerToken, logger)
+	logger.Info("Rate limiter created",
+		"limit_per_ip", cfg.RateLimitPerIP,
+		"limit_per_token", cfg.RateLimitPerToken,
+	)
+	return limiter
 }
 
 func provideLaravelUpstreamPool(cfg *config.Config, logger *slog.Logger) *core.LaravelUpstreamPool {
@@ -117,6 +128,7 @@ func provideHTTPHandlers(
 func provideHTTPServer(
 	cfg *config.Config,
 	handlers *http.Handlers,
+	rateLimiter *ratelimit.Limiter,
 	logger *slog.Logger,
 ) *http.Server {
 	return http.NewServer(
@@ -124,6 +136,7 @@ func provideHTTPServer(
 		cfg.HTTPReadTimeout,
 		cfg.HTTPWriteTimeout,
 		handlers,
+		rateLimiter,
 		cfg,
 		logger,
 	)

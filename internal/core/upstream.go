@@ -28,7 +28,7 @@ type LaravelResponse struct {
 type LaravelUpstreamPool struct {
 	laravelAddr string
 	secret      string
-	maxEvents    int
+	maxEvents   int
 	logger      *slog.Logger
 	semaphore   chan struct{}
 	httpClient  *http.Client
